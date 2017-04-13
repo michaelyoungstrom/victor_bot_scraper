@@ -19,7 +19,7 @@ from scrapy.spiders import CrawlSpider, Rule
 from scrapy.linkextractors import LinkExtractor
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError
-from pa11ycrawler.items import A11yItem
+from victor_bot_scraper.items import VictorBotScraperItem
 
 LOGIN_HTML_PATH = "/login"
 LOGIN_API_PATH = "/user_api/v1/account/login_session/"
@@ -212,26 +212,16 @@ class QuestionFinder(CrawlSpider):
         if title:
             title = title.strip()
 
-        # `response.request.headers` is a dictionary where the key is the
-        # header name, and the value is a *list*, containing one item,
-        # which is the header value. We need to get rid of this list, and just
-        # have key-value pairs. (This list probably exists in case the same
-        # header is sent multiple times, but that's not happening in this case,
-        # and the list construct is getting in the way.)
-        #
-        # We also need to convert bytes to ASCII. In practice, headers can
-        # only contain ASCII characters: see
-        # http://stackoverflow.com/questions/5423223/how-to-send-non-english-unicode-string-using-http-header
-        request_headers = {key.decode('ascii'): value[0].decode('ascii')
-                           for key, value
-                           in response.request.headers.items()}
-        item = A11yItem(
-            url=response.url,
-            request_headers=request_headers,
+        print "Hello!"
+
+        item = VictorBotScraperItem(
+			url=response.url,
             accessed_at=datetime.utcnow(),
             page_title=title,
         )
+
         yield item
+        
 
     def handle_unexpected_redirect_to_login_page(self, response):
         """
