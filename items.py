@@ -9,8 +9,5 @@ from scrapy.item import Item, Field
 
 
 class VictorBotScraperItem(scrapy.Item):
-    # define the fields for your item here like:
     url = Field()
-    headers = Field()
-    accessed_at = Field()
     page_title = Field()

@@ -125,10 +125,6 @@ class QuestionFinder(CrawlSpider):
 
     def start_requests(self):
 
-    	print("*********")
-    	print(self.login_email)
-    	print(self.login_password)
-
         if self.login_email and self.login_password:
             login_url = (
                 URLObject("http://")
@@ -212,11 +208,8 @@ class QuestionFinder(CrawlSpider):
         if title:
             title = title.strip()
 
-        print "Hello!"
-
         item = VictorBotScraperItem(
 			url=response.url,
-            accessed_at=datetime.utcnow(),
             page_title=title,
         )
 
