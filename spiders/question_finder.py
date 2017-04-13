@@ -98,7 +98,7 @@ class QuestionFinder(CrawlSpider):
                     all_blocks="true",
                 )
             )
-        self.start_urls = ["https://jzoldak.sandbox.edx.org/courses/course-v1:edX+Test101+course/info"]
+        self.start_urls = ["https://jzoldak.sandbox.edx.org/courses/course-v1:edX+Test101+course"]
         self.allowed_domains = [domain]
 
     def handle_error(self, failure):
