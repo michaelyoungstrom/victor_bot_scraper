@@ -1,15 +1,10 @@
 """
-A spider that can crawl an Open edX instance.
+A spider that crawls an EdX course to find assessment pages
 """
 import os
 import re
 import json
 from datetime import datetime
-# urlparse library depends on Python version
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
 from path import Path
 import yaml
 import requests
@@ -20,6 +15,7 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import DNSLookupError
 from victor_bot_scraper.items import VictorBotScraperItem
+from scrapy.selector import Selector
 
 LOGIN_HTML_PATH = "/login"
 LOGIN_API_PATH = "/user_api/v1/account/login_session/"
@@ -70,11 +66,11 @@ class QuestionFinder(CrawlSpider):
     def __init__(
             self,
             domain="jzoldak.sandbox.edx.org",
+            course_key="course-v1:edX+Test101+course",
             email="myoungstrom@edx.org",
             password="victor",
             http_user=None,
             http_pass=None,
-            course_key="course-v1:edX+Test101+course",
             data_dir="data",
         ):  # noqa
         super(QuestionFinder, self).__init__()
@@ -86,6 +82,7 @@ class QuestionFinder(CrawlSpider):
         self.http_user = http_user
         self.http_pass = http_pass
         self.data_dir = os.path.abspath(os.path.expanduser(data_dir))
+        self.urls_seen = []
 
         # set start URL based on course_key, which is the test course by default
         api_url = (
@@ -124,7 +121,6 @@ class QuestionFinder(CrawlSpider):
             self.logger.error('DNSLookupError on %s', request.url)
 
     def start_requests(self):
-
         if self.login_email and self.login_password:
             login_url = (
                 URLObject("http://")
@@ -143,8 +139,6 @@ class QuestionFinder(CrawlSpider):
 
     def after_initial_csrf(self, response):
         """
-        This method is called *only* if the crawler is started with an
-        email and password combination.
         In order to log in, we need a CSRF token from a GET request. This
         method takes the result of a GET request, extracts the CSRF token,
         and uses it to make a login request. The response to this login
@@ -172,9 +166,7 @@ class QuestionFinder(CrawlSpider):
 
     def after_initial_login(self, response):
         """
-        This method is called *only* if the crawler is started with an
-        email and password combination.
-        It verifies that the login request was successful,
+        Verifies that the login request was successful,
         and then generates requests from `self.start_urls`.
         """
         if LOGIN_FAILURE_MSG in response.text:
@@ -192,11 +184,7 @@ class QuestionFinder(CrawlSpider):
     def parse_item(self, response):
         """
         Get basic information about a page, so that it can be passed to the
-        `pa11y` tool for further testing.
-        @url https://www.google.com/
-        @returns items 1 1
-        @returns requests 0 0
-        @scrapes url request_headers accessed_at page_title
+        pipeline
         """
         # if we got redirected to a login page, then login
         if URLObject(response.url).path == LOGIN_HTML_PATH:
@@ -208,12 +196,20 @@ class QuestionFinder(CrawlSpider):
         if title:
             title = title.strip()
 
-        item = VictorBotScraperItem(
-			url=response.url,
-            page_title=title,
-        )
+        target_response = 'menu-item  graded'
 
-        yield item
+    	classes = response.xpath("//div[@class='menu-item  graded']/a")
+    	for c in classes:
+    		href = c.xpath("@href").extract_first()
+    		url = 'https://' + self.domain + href
+
+        	if url not in self.urls_seen:
+        		self.urls_seen.append(url)
+        		item = VictorBotScraperItem(
+					url=url,
+           			page_title=title,
+       			)
+       			yield item
         
 
     def handle_unexpected_redirect_to_login_page(self, response):
